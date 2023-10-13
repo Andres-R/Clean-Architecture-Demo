@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:clean_arch_course/core/errors/exceptions.dart';
 import 'package:clean_arch_course/core/utils/constants.dart';
 import 'package:clean_arch_course/src/authentication/data/datasources/authentication_remote_data_source.dart';
+import 'package:clean_arch_course/src/authentication/data/models/user_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:http/http.dart' as http;
@@ -52,6 +53,7 @@ void main() {
           verify(() {
             return client.post(
               Uri.parse('$kBaseUrl/$kCreateUserEndpoint'),
+              //Uri.https(kBaseUrl, kCreateUserEndpoint),
               body: jsonEncode({
                 'createdAt': 'createdAt',
                 'name': 'name',
@@ -63,7 +65,6 @@ void main() {
           verifyNoMoreInteractions(client);
         },
       );
-
       test(
         'should throw [APIException] when the status code is not 200 or 201',
         () async {
@@ -97,6 +98,7 @@ void main() {
           verify(() {
             return client.post(
               Uri.parse('$kBaseUrl/$kCreateUserEndpoint'),
+              //Uri.https(kBaseUrl, kCreateUserEndpoint),
               body: jsonEncode({
                 'createdAt': 'createdAt',
                 'name': 'name',
@@ -110,4 +112,63 @@ void main() {
       );
     },
   );
+
+  group('getUsers', () {
+    const tUsers = [UserModel.empty()];
+    test(
+      'should return [List<User>] when the status code is 200',
+      () async {
+        // Arrange
+        when(() {
+          return client.get(any());
+        }).thenAnswer((invocation) async {
+          return http.Response(jsonEncode([tUsers.first.toMap()]), 200);
+        });
+
+        // Act
+        final result = await remoteDataSource.getUsers();
+
+        // Assert
+        expect(result, equals(tUsers));
+
+        verify(() {
+          return client.get(Uri.https(kBaseUrl, kGetUsersEndpoint));
+        }).called(1);
+
+        verifyNoMoreInteractions(client);
+      },
+    );
+
+    test(
+      'should throw [APIException] when the status code is not 200',
+      () async {
+        const tMessage = 'Server down';
+
+        // Arrange
+        when(() {
+          return client.get(any());
+        }).thenAnswer((invocation) async {
+          return http.Response(tMessage, 500);
+        });
+
+        // Act
+        final methodCall = remoteDataSource.getUsers;
+
+        // Assert
+        // make sure higher order function calls methodCall and throws exception
+        expect(
+          methodCall,
+          throwsA(
+            const APIException(message: tMessage, statusCode: 500),
+          ),
+        );
+
+        verify(() {
+          return client.get(Uri.https(kBaseUrl, kGetUsersEndpoint));
+        }).called(1);
+
+        verifyNoMoreInteractions(client);
+      },
+    );
+  });
 }
