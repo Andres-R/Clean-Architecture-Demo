@@ -36,7 +36,7 @@ class AuthenticationRepositoryImplementation
   @override
   FutureResult<List<User>> getUsers() async {
     try {
-      List<UserModel> result = await _remoteDataSource.getUsers();
+      final result = await _remoteDataSource.getUsers();
       return Right(result);
     } on APIException catch (e) {
       return Left(APIFailure.fromException(e));
