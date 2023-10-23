@@ -30,7 +30,13 @@ void main() {
         () async {
           // Arrange
           when(() {
-            return client.post(any(), body: any(named: 'body'));
+            return client.post(
+              any(),
+              body: any(
+                named: 'body',
+              ),
+              headers: {'Content-Type': 'application/json'},
+            );
           }).thenAnswer((invocation) async {
             return http.Response('User created successfully', 201);
           });
@@ -59,6 +65,7 @@ void main() {
                 'name': 'name',
                 'avatar': 'avatar',
               }),
+              headers: {'Content-Type': 'application/json'},
             );
           }).called(1);
 

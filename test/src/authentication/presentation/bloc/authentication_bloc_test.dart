@@ -2,7 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:clean_arch_course/core/errors/failure.dart';
 import 'package:clean_arch_course/src/authentication/domain/usecases/create_user_usecase.dart';
 import 'package:clean_arch_course/src/authentication/domain/usecases/get_users_usecase.dart';
-import 'package:clean_arch_course/src/authentication/presentation/cubit/authentication_cubit.dart';
+import 'package:clean_arch_course/src/authentication/presentation/bloc/authentication_bloc.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -14,7 +14,7 @@ class MockCreateUserUseCase extends Mock implements CreateUserUseCase {}
 void main() {
   late GetUsersUseCase getUsersUseCase;
   late CreateUserUseCase createUserUseCase;
-  late AuthenticationCubit cubit;
+  late AuthenticationBloc bloc;
 
   const tCreateUserParams = CreateUserParams.empty();
   const tAPIFailure = APIFailure(message: 'message', statusCode: 400);
@@ -22,7 +22,7 @@ void main() {
   setUp(() {
     getUsersUseCase = MockGetUsersUseCase();
     createUserUseCase = MockCreateUserUseCase();
-    cubit = AuthenticationCubit(
+    bloc = AuthenticationBloc(
       createUserUseCase: createUserUseCase,
       getUsersUseCase: getUsersUseCase,
     );
@@ -30,15 +30,15 @@ void main() {
   });
 
   tearDown(() {
-    cubit.close();
+    bloc.close();
   });
 
   test('initial state should be [AuthenticationInitial]', () async {
-    expect(cubit.state, const AuthenticationInitial());
+    expect(bloc.state, const AuthenticationInitial());
   });
 
   group('createUser', () {
-    blocTest<AuthenticationCubit, AuthenticationState>(
+    blocTest<AuthenticationBloc, AuthenticationState>(
       'should emit [CreatingUser, UserCreated] when successful',
       build: () {
         when(() {
@@ -47,24 +47,26 @@ void main() {
         }).thenAnswer((invocation) async {
           return const Right(null);
         });
-        return cubit;
+        return bloc;
       },
-      act: (cubit) => cubit.createUser(
-        createdAt: tCreateUserParams.createdAt,
-        name: tCreateUserParams.name,
-        avatar: tCreateUserParams.avatar,
+      act: (bloc) => bloc.add(
+        CreateUserEvent(
+          createdAt: tCreateUserParams.createdAt,
+          name: tCreateUserParams.name,
+          avatar: tCreateUserParams.avatar,
+        ),
       ),
       expect: () => const [
         CreatingUser(),
         UserCreated(),
       ],
-      verify: (cubit) {
+      verify: (bloc) {
         verify(() => createUserUseCase.call(tCreateUserParams)).called(1);
         verifyNoMoreInteractions(createUserUseCase);
       },
     );
 
-    blocTest<AuthenticationCubit, AuthenticationState>(
+    blocTest<AuthenticationBloc, AuthenticationState>(
       'should emit [CreartingUser, AuthenticationError] when unsuccessful',
       build: () {
         when(() {
@@ -72,18 +74,20 @@ void main() {
         }).thenAnswer((invocation) async {
           return const Left(tAPIFailure);
         });
-        return cubit;
+        return bloc;
       },
-      act: (cubit) => cubit.createUser(
-        createdAt: tCreateUserParams.createdAt,
-        name: tCreateUserParams.name,
-        avatar: tCreateUserParams.avatar,
+      act: (bloc) => bloc.add(
+        CreateUserEvent(
+          createdAt: tCreateUserParams.createdAt,
+          name: tCreateUserParams.name,
+          avatar: tCreateUserParams.avatar,
+        ),
       ),
       expect: () => [
         const CreatingUser(),
         AuthenticationError(tAPIFailure.errorMessage),
       ],
-      verify: (cubit) {
+      verify: (bloc) {
         verify(() => createUserUseCase.call(tCreateUserParams)).called(1);
         verifyNoMoreInteractions(createUserUseCase);
       },
@@ -91,7 +95,7 @@ void main() {
   });
 
   group('getUsers', () {
-    blocTest<AuthenticationCubit, AuthenticationState>(
+    blocTest<AuthenticationBloc, AuthenticationState>(
       'should emit [GettingUsers, UsersLoaded] when successful',
       build: () {
         when(() {
@@ -99,20 +103,20 @@ void main() {
         }).thenAnswer((invocation) async {
           return const Right([]);
         });
-        return cubit;
+        return bloc;
       },
-      act: (cubit) => cubit.getUsers(),
+      act: (bloc) => bloc.add(const GetUsersEvent()),
       expect: () => const [
         GettingUsers(),
         UsersLoaded([]),
       ],
-      verify: (cubit) {
+      verify: (bloc) {
         verify(() => getUsersUseCase.call()).called(1);
         verifyNoMoreInteractions(getUsersUseCase);
       },
     );
 
-    blocTest<AuthenticationCubit, AuthenticationState>(
+    blocTest<AuthenticationBloc, AuthenticationState>(
       'should emit [GettingUsers, AuthenticationError] when unsuccessful',
       build: () {
         when(() {
@@ -120,14 +124,14 @@ void main() {
         }).thenAnswer((invocation) async {
           return const Left(tAPIFailure);
         });
-        return cubit;
+        return bloc;
       },
-      act: (cubit) => cubit.getUsers(),
+      act: (bloc) => bloc.add(const GetUsersEvent()),
       expect: () => [
         const GettingUsers(),
         AuthenticationError(tAPIFailure.errorMessage),
       ],
-      verify: (cubit) {
+      verify: (bloc) {
         verify(() => getUsersUseCase.call()).called(1);
         verifyNoMoreInteractions(getUsersUseCase);
       },

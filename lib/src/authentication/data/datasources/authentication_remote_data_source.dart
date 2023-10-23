@@ -16,8 +16,8 @@ abstract class AuthenticationRemoteDataSource {
   Future<List<UserModel>> getUsers();
 }
 
-const kCreateUserEndpoint = '/test-api/users';
-const kGetUsersEndpoint = '/test-api/users';
+const kCreateUserEndpoint = 'test-api/users';
+const kGetUsersEndpoint = 'test-api/users';
 
 class AuthRemoteDataSrcImpl implements AuthenticationRemoteDataSource {
   const AuthRemoteDataSrcImpl(this._client);
@@ -32,12 +32,13 @@ class AuthRemoteDataSrcImpl implements AuthenticationRemoteDataSource {
   }) async {
     try {
       final response = await _client.post(
-        Uri.parse('$kBaseUrl/$kCreateUserEndpoint'),
+        Uri.https(kBaseUrl, kCreateUserEndpoint),
         body: jsonEncode({
-          'createdAt': 'createdAt',
-          'name': 'name',
-          'avatar': 'avatar',
+          'createdAt': createdAt,
+          'name': name,
+          'avatar': avatar,
         }),
+        headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode != 200 && response.statusCode != 201) {
         throw APIException(
@@ -48,6 +49,7 @@ class AuthRemoteDataSrcImpl implements AuthenticationRemoteDataSource {
     } on APIException {
       rethrow;
     } catch (e) {
+      print('ERROR: ${e.toString()}');
       // this is incase anything goes wrong on our behalf, dart exception
       throw APIException(message: e.toString(), statusCode: 505);
     }
